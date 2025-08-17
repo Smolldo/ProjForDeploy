@@ -1,38 +1,29 @@
 import os
-from sqlalchemy import create_engine, String, Integer, Column
+from sqlalchemy import create_engine, String, Integer, Float
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Mapped, mapped_column
 
-# Отримуємо DATABASE_URL з Render (або використовуємо SQLite локально)
-DATABASE_URL = os.getenv("DATABASE_URL")
+# URL бази даних (Render дає DATABASE_URL у змінних середовища)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./my_db.db")
 
-if DATABASE_URL:
-    # Для pg8000 потрібен спеціальний драйвер
+# Якщо PostgreSQL (Render), то міняємо драйвер
+if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://")
-else:
-    # Якщо немає DATABASE_URL → fallback на SQLite
-    DATABASE_URL = "sqlite:///local.db"
 
-# Створюємо engine
 engine = create_engine(DATABASE_URL, echo=True)
-
-# Сесія
 Session = sessionmaker(bind=engine)
 
-# Базовий клас
 class Base(DeclarativeBase):
     pass
 
-
-# Приклад моделі
 class Conversion(Base):
     __tablename__ = "conversions"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    input_value: Mapped[str] = mapped_column(String, nullable=False)
-    output_value: Mapped[str] = mapped_column(String, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    from_currency: Mapped[str] = mapped_column(String(3))
+    to_currency: Mapped[str] = mapped_column(String(3))
+    amount: Mapped[float] = mapped_column(Float)
+    result: Mapped[float] = mapped_column(Float)
 
-
-# Функції для створення/видалення таблиць
 def create_db():
     Base.metadata.create_all(engine)
 
