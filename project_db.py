@@ -1,25 +1,29 @@
 import os
-from sqlalchemy import create_engine, String, Integer, ForeignKey, Column
+from sqlalchemy import create_engine, String, Integer, Column
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Mapped, mapped_column
 
-
+# Отримуємо DATABASE_URL з Render (або використовуємо SQLite локально)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+if DATABASE_URL:
+    # Для pg8000 потрібен спеціальний драйвер
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://")
+else:
+    # Якщо немає DATABASE_URL → fallback на SQLite
+    DATABASE_URL = "sqlite:///local.db"
 
-DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://")
-
-
+# Створюємо engine
 engine = create_engine(DATABASE_URL, echo=True)
 
-
+# Сесія
 Session = sessionmaker(bind=engine)
 
-
+# Базовий клас
 class Base(DeclarativeBase):
     pass
 
 
-
+# Приклад моделі
 class Conversion(Base):
     __tablename__ = "conversions"
 
@@ -28,7 +32,7 @@ class Conversion(Base):
     output_value: Mapped[str] = mapped_column(String, nullable=False)
 
 
-
+# Функції для створення/видалення таблиць
 def create_db():
     Base.metadata.create_all(engine)
 
